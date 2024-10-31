@@ -20,6 +20,14 @@ function bool_and_flags_eq ((bool_0, flags_0), (bool_1, flags_1)) = {
   is_eq;
 }
 
-overload operator == = {bool_and_flags_eq}
+val      fp_bits_and_flags_eq : forall 'n, 'n in { 16, 32, 64, 128 }.
+  ((bits('n), fp_exception_flags), (bits('n), fp_exception_flags)) -> bool
+function fp_bits_and_flags_eq ((fp_0, flags_0), (fp_1, flags_1)) = {
+  let is_eq = fp_0 == fp_1 & (flags_0 == flags_1);
+
+  is_eq;
+}
+
+overload operator == = {bool_and_flags_eq, fp_bits_and_flags_eq}
 
 $endif
