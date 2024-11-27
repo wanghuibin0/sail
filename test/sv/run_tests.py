@@ -20,17 +20,15 @@ skip_tests = {
     'cheri128_hsb', # loops
     'for_shadow', # loops
     'loop_exception', # loops
-    'poly_mapping', # bitvector parsing
     'read_write_ram', # memory
     'real', # reals
     'real_prop', # reals
     'split', # loops
     'vector_example', # loops
-    'lib_hex_bits', # bitvector parsing
-    'lib_hex_bits_signed', # bitvector parsing
     'nexp_simp_euclidian', # division
     'concurrency_interface', # memory
     'ediv_from_tdiv', # loops
+    'lib_hex_bits_signed', # verilator bug (in CI, works with latest)
 }
 
 print("Sail is {}".format(sail))
