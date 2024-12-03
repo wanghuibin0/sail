@@ -76,6 +76,7 @@ let rec doc_typ (Typ_aux (t, _) as typ) =
   | Typ_id (Id_aux (Id "int", _)) -> string "Int"
   | Typ_id (Id_aux (Id "bool", _)) -> string "Bool"
   | Typ_id (Id_aux (Id "bit", _)) -> parens (string "BitVec 1")
+  | Typ_id (Id_aux (Id "nat", _)) -> string "Nat"
   | Typ_app (Id_aux (Id "bitvector", _), [A_aux (A_nexp m, _)]) -> string "BitVec " ^^ doc_nexp m
   | Typ_tuple ts -> parens (separate_map (space ^^ string "×" ^^ space) doc_typ ts)
   | Typ_id (Id_aux (Id id, _)) -> string id
@@ -199,5 +200,6 @@ let rec remove_imports (defs : (Libsail.Type_check.tannot, Libsail.Type_check.en
 let pp_ast_lean ({ defs; _ } as ast : Libsail.Type_check.typed_ast) o =
   let defs = remove_imports defs 0 in
   let output : document = separate_map empty doc_def defs in
+  output_string o "import Sail.sail\n\n";
   print o output;
   ()
