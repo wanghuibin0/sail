@@ -67,8 +67,34 @@ let rec untuple_args_pat typs (P_aux (paux, ((l, _) as annot)) as pat) =
   | _, [typ] -> ([(pat, typ)], identity)
   | _, _ -> unreachable l __POS__ "Unexpected pattern/type combination"
 
+let string_of_nexp_con (Nexp_aux (n, l)) =
+  match n with
+  | Nexp_constant _ -> "NExp_constant"
+  | Nexp_id _ -> "Nexp_id"
+  | Nexp_var _ -> "Nexp_var"
+  | Nexp_app _ -> "Nexp_app"
+  | Nexp_if _ -> "Nexp_if"
+  | Nexp_times _ -> "Nexp_times"
+  | Nexp_sum _ -> "Nexp_sum"
+  | Nexp_minus _ -> "Nexp_minus"
+  | Nexp_neg _ -> "Nexp_neg"
+  | Nexp_exp _ -> "Nexp_exp"
+
 let doc_nexp (Nexp_aux (n, l) as nexp) =
-  match n with Nexp_constant i -> string (Big_int.to_string i) | _ -> failwith "NExp not translatable yet."
+  match n with
+  | Nexp_constant i -> string (Big_int.to_string i)
+  | _ -> failwith ("NExp " ^ string_of_nexp_con nexp ^ " " ^ string_of_nexp nexp ^ " not translatable yet.")
+
+let string_of_typ_con (Typ_aux (t, _)) =
+  match t with
+  | Typ_app _ -> "Typ_app"
+  | Typ_var _ -> "Typ_var"
+  | Typ_fn _ -> "Typ_fn"
+  | Typ_tuple _ -> "Typ_tuple"
+  | Typ_exist _ -> "Typ_exist"
+  | Typ_bidir _ -> "Typ_bidir"
+  | Typ_internal_unknown -> "Typ_internal_unknown"
+  | Typ_id _ -> "Typ_id"
 
 let rec doc_typ (Typ_aux (t, _) as typ) =
   match t with
@@ -80,7 +106,7 @@ let rec doc_typ (Typ_aux (t, _) as typ) =
   | Typ_app (Id_aux (Id "bitvector", _), [A_aux (A_nexp m, _)]) -> string "BitVec " ^^ doc_nexp m
   | Typ_tuple ts -> parens (separate_map (space ^^ string "×" ^^ space) doc_typ ts)
   | Typ_id (Id_aux (Id id, _)) -> string id
-  | _ -> failwith "Type not translatable yet."
+  | _ -> failwith ("Type " ^ string_of_typ_con typ ^ " " ^ string_of_typ typ ^ " not translatable yet.")
 
 let doc_typ_id (typ, fid) = concat [doc_id_ctor fid; space; colon; space; doc_typ typ; hardline]
 
@@ -109,6 +135,46 @@ let doc_lit (L_aux (lit, l)) =
   | L_string s -> utf8string ("\"" ^ lean_escape_string s ^ "\"")
   | L_real s -> utf8string s (* TODO test if this is really working *)
 
+let string_of_exp_con (E_aux (e, _)) =
+  match e with
+  | E_block _ -> "E_block"
+  | E_ref _ -> "E_ref"
+  | E_app_infix _ -> "E_app_infix"
+  | E_if _ -> "E_if"
+  | E_loop _ -> "E_loop"
+  | E_for _ -> "E_for"
+  | E_vector_access _ -> "E_vector_access"
+  | E_vector_subrange _ -> "E_vector_subrange"
+  | E_vector_update _ -> "E_vector_update"
+  | E_vector_update_subrange _ -> "E_vector_update_subrange"
+  | E_vector_append _ -> "E_vector_append"
+  | E_list _ -> "E_list"
+  | E_cons _ -> "E_cons"
+  | E_struct _ -> "E_struct"
+  | E_struct_update _ -> "E_struct_update"
+  | E_field _ -> "E_field"
+  | E_match _ -> "E_match"
+  | E_assign _ -> "E_assign"
+  | E_sizeof _ -> "E_sizeof"
+  | E_constraint _ -> "E_constraint"
+  | E_exit _ -> "E_exit"
+  | E_throw _ -> "E_throw"
+  | E_try _ -> "E_try"
+  | E_return _ -> "E_return"
+  | E_assert _ -> "E_assert"
+  | E_var _ -> "E_var"
+  | E_internal_plet _ -> "E_internal_plet"
+  | E_internal_return _ -> "E_internal_return"
+  | E_internal_assume _ -> "E_internal_assume"
+  | E_internal_value _ -> "E_internal_value"
+  | E_id _ -> "E_id"
+  | E_lit _ -> "E_lit"
+  | E_typ _ -> "E_typ"
+  | E_app _ -> "E_app"
+  | E_tuple _ -> "E_tuple"
+  | E_vector _ -> "E_vector"
+  | E_let _ -> "E_let"
+
 let rec doc_exp (E_aux (e, (l, annot)) as full_exp) =
   let env = env_of_tannot annot in
   match e with
@@ -134,7 +200,7 @@ let rec doc_exp (E_aux (e, (l, annot)) as full_exp) =
         | _ -> failwith "Let pattern not translatable yet."
       in
       nest 2 (flow (break 1) [string "let"; string id; coloneq; doc_exp lexp]) ^^ hardline ^^ doc_exp e
-  | _ -> failwith "Expression not translatable yet"
+  | _ -> failwith ("Expression " ^ string_of_exp_con full_exp ^ " " ^ string_of_exp full_exp ^ " not translatable yet.")
 
 let doc_funcl_init (FCL_aux (FCL_funcl (id, pexp), annot)) =
   let env = env_of_tannot (snd annot) in
@@ -179,6 +245,15 @@ let doc_fundef (FD_aux (FD_function (r, typa, fcls), fannot)) =
   | [funcl] -> doc_funcl funcl
   | _ -> failwith "FD_function with more than one clause"
 
+let string_of_type_def_con (TD_aux (td, _)) =
+  match td with
+  | TD_abbrev _ -> "TD_abbrev"
+  | TD_record _ -> "TD_record"
+  | TD_variant _ -> "TD_variant"
+  | TD_abstract _ -> "TD_abstract"
+  | TD_bitfield _ -> "TD_bitfield"
+  | TD_enum _ -> "TD_enum"
+
 let doc_typdef (TD_aux (td, tannot) as full_typdef) =
   match td with
   | TD_enum (Id_aux (Id id, _), fields, _) ->
@@ -196,7 +271,7 @@ let doc_typdef (TD_aux (td, tannot) as full_typdef) =
       let enums_doc = concat fields in
       let rectyp = doc_typ_quant tq in
       nest 2 (flow (break 1) [string "structure"; string id; rectyp; string "where"] ^^ hardline ^^ enums_doc)
-  | _ -> failwith "Type definition not translatable yet"
+  | _ -> failwith ("Type definition " ^ string_of_type_def_con full_typdef ^ " not translatable yet.")
 
 let doc_def (DEF_aux (aux, def_annot) as def) =
   match aux with
