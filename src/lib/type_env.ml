@@ -99,7 +99,7 @@ type global_env = {
   registers : typ env_item Bindings.t;
   overloads : id list multiple_env_item Bindings.t;
   outcomes : (typquant * typ * kinded_id list * id list * (typquant * typ) env_item Bindings.t) env_item Bindings.t;
-  scattered_ids : IdSet.t;
+  scattered_ids : ((l * string * Ast.attribute_data option) list, Ast.l) result Bindings.t;
   outcome_instantiation : (Ast.l * typ) KBindings.t;
 }
 
@@ -126,7 +126,7 @@ let empty_global_env =
     registers = Bindings.empty;
     overloads = Bindings.empty;
     outcomes = Bindings.empty;
-    scattered_ids = IdSet.empty;
+    scattered_ids = Bindings.empty;
     outcome_instantiation = KBindings.empty;
   }
 
@@ -1022,6 +1022,18 @@ let wf_constraint ~at:at_l env (NC_aux (_, l) as nc) =
     let extra, l = match l with Parse_ast.Unknown -> (" here", at_l) | _ -> ("", l) in
     typ_raise l (err_because (Err_other ("Well-formedness check failed for constraint" ^ extra), err_l, err))
 
+let string_of_mtyp (mut, typ) =
+  match mut with Immutable -> string_of_typ typ | Mutable -> "ref<" ^ string_of_typ typ ^ ">"
+
+let add_local id mtyp env =
+  if not env.allow_bindings then typ_error (id_loc id) "Bindings are not allowed in this context";
+  wf_typ ~at:(id_loc id) env (snd mtyp);
+  if Bindings.mem id env.global.val_specs then
+    typ_error (id_loc id) ("Local variable " ^ string_of_id id ^ " is already bound as a function name")
+  else ();
+  typ_print (lazy (adding ^ "local binding " ^ string_of_id id ^ " : " ^ string_of_mtyp mtyp)) [@coverage off];
+  { env with locals = Bindings.add id mtyp env.locals }
+
 let add_typquant l quant env =
   let rec add_quant_item env = function QI_aux (qi, _) -> add_quant_item_aux env qi
   and add_quant_item_aux env = function
@@ -1312,17 +1324,55 @@ let add_enum' is_scattered id ids env =
       env
   )
 
-let add_scattered_id id env =
-  update_global (fun global -> { global with scattered_ids = IdSet.add id global.scattered_ids }) env
-
-let is_scattered_id id env = IdSet.mem id env.global.scattered_ids
-
-let add_scattered_enum id env = env |> add_scattered_id id |> add_enum' true id []
-
 let add_enum id ids env = add_enum' false id ids env
 
+let get_enum_opt id env =
+  match Option.map (get_item (id_loc id) env) (Bindings.find_opt id env.global.enums) with
+  | Some (_, enum) -> Some (IdSet.elements enum)
+  | None -> None
+
+let get_enum id env =
+  match get_enum_opt id env with
+  | Some enum -> enum
+  | None -> typ_error (id_loc id) ("Enumeration " ^ string_of_id id ^ " does not exist")
+
+let get_enums env = filter_items_with snd env env.global.enums
+
+let add_scattered_id id attrs env =
+  let updater = function None -> Some (Ok attrs) | previous -> previous in
+  update_global (fun global -> { global with scattered_ids = Bindings.update id updater global.scattered_ids }) env
+
+let add_scattered_enum id attrs env = env |> add_scattered_id id attrs |> add_enum' true id []
+
+let is_scattered_id id env = Bindings.mem id env.global.scattered_ids
+
+let end_scattered_id ~at:l id env =
+  let attrs = ref [] in
+  let updater = function
+    | None -> typ_error l (string_of_id id ^ " is not a scattered definition, so it cannot be ended")
+    | Some (Ok attrs') ->
+        attrs := attrs';
+        Some (Error l)
+    | Some (Error prev_l) ->
+        typ_error
+          (Hint ("previously ended here", prev_l, l))
+          ("Cannot end scattered definition " ^ string_of_id id ^ " as it has already been ended")
+  in
+  let env =
+    update_global (fun global -> { global with scattered_ids = Bindings.update id updater global.scattered_ids }) env
+  in
+  match get_enum_opt id env with
+  | None -> env
+  | Some members -> (
+      match find_attribute_opt "enum_vector" !attrs with
+      | None -> env
+      | Some (_, Some (AD_aux (AD_string enum_vector_name, _))) ->
+          add_local (mk_id enum_vector_name) (Immutable, vector_typ (nint (List.length members)) (mk_id_typ id)) env
+      | Some (l, _) -> raise (Reporting.err_general l "Invalid enum_vector attribute")
+    )
+
 let add_enum_clause id member env =
-  let env = add_scattered_id id env in
+  let env = add_scattered_id id [] env in
   match Bindings.find_opt id env.global.enums with
   | Some item ->
       if not (item_in_scope env item) then
@@ -1348,18 +1398,6 @@ let add_enum_clause id member env =
               ("Enumeration " ^ string_of_id id ^ " is not scattered - cannot add a new member with 'enum clause'")
       )
   | None -> typ_error (id_loc id) ("Enumeration " ^ string_of_id id ^ " does not exist")
-
-let get_enum_opt id env =
-  match Option.map (get_item (id_loc id) env) (Bindings.find_opt id env.global.enums) with
-  | Some (_, enum) -> Some (IdSet.elements enum)
-  | None -> None
-
-let get_enum id env =
-  match get_enum_opt id env with
-  | Some enum -> enum
-  | None -> typ_error (id_loc id) ("Enumeration " ^ string_of_id id ^ " does not exist")
-
-let get_enums env = filter_items_with snd env env.global.enums
 
 let is_record id env = Bindings.mem id env.global.records
 
@@ -1428,18 +1466,6 @@ let is_mutable id env =
   let to_bool = function Mutable -> true | Immutable -> false in
   match Bindings.find_opt id env.locals with Some (mut, _) -> to_bool mut | None -> false
 
-let string_of_mtyp (mut, typ) =
-  match mut with Immutable -> string_of_typ typ | Mutable -> "ref<" ^ string_of_typ typ ^ ">"
-
-let add_local id mtyp env =
-  if not env.allow_bindings then typ_error (id_loc id) "Bindings are not allowed in this context";
-  wf_typ ~at:(id_loc id) env (snd mtyp);
-  if Bindings.mem id env.global.val_specs then
-    typ_error (id_loc id) ("Local variable " ^ string_of_id id ^ " is already bound as a function name")
-  else ();
-  typ_print (lazy (adding ^ "local binding " ^ string_of_id id ^ " : " ^ string_of_mtyp mtyp)) [@coverage off];
-  { env with locals = Bindings.add id mtyp env.locals }
-
 (* Promote a set of identifiers from local bindings to top-level global letbindings *)
 let add_toplevel_lets ids (env : env) =
   IdSet.fold
@@ -1477,7 +1503,7 @@ let add_variant id (typq, constructors) env =
   )
 
 let add_scattered_variant id typq env =
-  let env = add_scattered_id id env in
+  let env = add_scattered_id id [] env in
   if bound_typ_id env id then already_bound "scattered union" id env
   else (
     typ_print (lazy (adding ^ "scattered variant " ^ string_of_id id)) [@coverage off];
@@ -1493,7 +1519,7 @@ let add_scattered_variant id typq env =
   )
 
 let add_variant_clause id tu env =
-  let env = add_scattered_id id env in
+  let env = add_scattered_id id [] env in
   match Bindings.find_opt id env.global.unions with
   | Some ({ item = typq, tus; _ } as item) ->
       update_global
