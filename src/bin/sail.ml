@@ -671,8 +671,10 @@ let main () =
           with End_of_file -> List.rev !lines
         )
     in
-    Repl.start_repl ~commands:script ~auto_rewrites:!opt_auto_interpreter_rewrites ~config ~options:!options ctx env
+    ()
+    (*Repl.start_repl ~commands:script ~auto_rewrites:!opt_auto_interpreter_rewrites ~config ~options:!options ctx env
       effect_info ast
+      *)
   )
 
 let () =

@@ -812,8 +812,10 @@ let primops =
          ("replicate_bits", value_replicate_bits);
          ("count_leading_zeros", value_count_leading_zeros);
          ("count_trailing_zeros", value_count_trailing_zeros);
+         (*
          ("Elf_loader.elf_entry", fun _ -> V_int !Elf_loader.opt_elf_entry);
          ("Elf_loader.elf_tohost", fun _ -> V_int !Elf_loader.opt_elf_tohost);
+         *)
          ("string_append", value_string_append);
          ("string_length", value_string_length);
          ("string_startswith", value_string_startswith);

@@ -36,7 +36,7 @@ depends: [
   "menhir" {>= "20240715" & build}
   "ott" {>= "0.28" & build}
   "lem" {>= "2018-12-14"}
-  "linksem" {>= "0.3"}
+  #"linksem" {>= "0.3"}
   "conf-gmp"
   "yojson" {>= "1.6.0"}
   "pprint" {>= "20220103"}

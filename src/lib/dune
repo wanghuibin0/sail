@@ -106,6 +106,7 @@
 (library
  (name libsail)
  (public_name libsail)
- (libraries lem linksem pprint dune-site yojson menhirLib)
+ (modules (:standard \ elf_loader))
+ (libraries lem str unix pprint dune-site yojson menhirLib)
  (instrumentation
   (backend bisect_ppx)))

@@ -12,8 +12,9 @@
  (name sail)
  (public_name sail)
  (package sail)
+ (modules (:standard \ repl))
  (link_flags -linkall)
- (libraries libsail linenoise dynlink))
+ (libraries libsail dynlink))
 
 ; For legacy reasons install all the Sail files in lib as part of this package
 
