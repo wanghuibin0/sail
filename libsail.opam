@@ -34,9 +34,8 @@ depends: [
   "dune-site" {>= "3.0.2"}
   "bisect_ppx" {dev & >= "2.5.0"}
   "menhir" {>= "20240715" & build}
-  "ott" {>= "0.28" & build}
-  "lem" {>= "2018-12-14"}
-  #"linksem" {>= "0.3"}
+  "ott"
+  "lem"
   "conf-gmp"
   "yojson" {>= "1.6.0"}
   "pprint" {>= "20220103"}
@@ -59,3 +58,7 @@ build: [
   ["dune" "install" "-p" name "--create-install-files" name]
 ]
 dev-repo: "git+https://github.com/rems-project/sail.git"
+pin-depends: [
+  ["ott" "git+https://github.com/wanghuibin0/ott#xce"]
+  ["lem" "git+https://github.com/wanghuibin0/lem#xce"]
+]

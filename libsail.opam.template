@@ -1,0 +1,4 @@
+pin-depends: [
+  ["ott" "git+https://github.com/wanghuibin0/ott#xce"]
+  ["lem" "git+https://github.com/wanghuibin0/lem#xce"]
+]

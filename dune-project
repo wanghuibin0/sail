@@ -53,9 +53,8 @@ http://www.cl.cam.ac.uk/~pes20/sail/.
     (dune-site (>= 3.0.2))
     (bisect_ppx (and :dev (>= "2.5.0")))
     (menhir (and (>= 20240715) :build))
-    (ott (and (>= 0.28) :build))
-    (lem (>= "2018-12-14"))
-    (linksem (>= "0.3"))
+    ott
+    lem
     conf-gmp
     (yojson (>= 1.6.0))
     (pprint (>= 20220103))))
@@ -150,4 +149,4 @@ http://www.cl.cam.ac.uk/~pes20/sail/.
     (sail_latex_backend (and (= :version) :post))
     (sail_doc_backend (and (= :version) :post))
     (sail_output (and (= :version) :post))
-    (linenoise (>= 1.1.0))))
+    ))
