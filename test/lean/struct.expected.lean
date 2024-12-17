@@ -1,4 +1,4 @@
-import Sail.sail
+import Out.Sail.Sail
 
 structure My_struct where
   field1 : Int
